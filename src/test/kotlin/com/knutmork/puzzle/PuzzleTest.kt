@@ -8,7 +8,8 @@ class PuzzleTest {
     fun simplePuzzle() {
         val board = Board(6, 13)
         board.putPiece(Piece("110 010 011"))
-        board.putPiece(Piece("1 1"))
+        board.putPiece(Piece("110 010 011"))
+        board.putPiece(Piece("111111"))
 
         println(board)
     }

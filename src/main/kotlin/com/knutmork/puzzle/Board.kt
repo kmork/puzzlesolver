@@ -13,7 +13,6 @@ class Board (private val numCols : Int, private val numRows : Int){
     fun putPiece(piece : Piece) {
         val (x, y) = findFirstEmptyPos()
         checkEmptyCellsForPiece(piece, x, y)
-        // putRotateIfNecessary()
     }
 
     private fun checkEmptyCellsForPiece(piece: Piece, x: Int, y: Int) {
@@ -26,13 +25,15 @@ class Board (private val numCols : Int, private val numRows : Int){
             for ((x1, y1) in relPositions.iterator()) {
                 cellAtPos(x1, y1).setPiece(piece)
             }
+        } else {
+            // putRotateIfNecessary()
+            // otherwise find next empty pos and try again
         }
     }
 
     private fun allEmpty(boardPositions: List<Pair<Int, Int>>): Boolean {
         for ((x, y) in boardPositions.iterator()) {
             if (!cellAtPos(x, y).isEmpty()) {
-                println("NOT ALL EMPTY")
                 return false
             }
         }
@@ -40,7 +41,7 @@ class Board (private val numCols : Int, private val numRows : Int){
     }
 
     private fun relativePositions(piecePositions: MutableList<Pair<Int, Int>>, x: Int, y: Int): List<Pair<Int, Int>> {
-        return piecePositions.map { (x1, y1) -> Pair(x1 - x, y1 - y) }
+        return piecePositions.map { (x1, y1) -> Pair(x1 + x, y1 + y) }
     }
 
     private fun findFirstEmptyPos() : Pair<Int, Int> {
