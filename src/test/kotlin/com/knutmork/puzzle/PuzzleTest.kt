@@ -6,9 +6,9 @@ class PuzzleTest {
 
     @Test
     fun simplePuzzle() {
-        val piece1 = Piece("110 010 011")
         val board = Board(6, 13)
-        board.putPiece(piece1)
+        board.putPiece(Piece("110 010 011"))
+        board.putPiece(Piece("1 1"))
 
         println(board)
     }

@@ -21,7 +21,7 @@ class Piece (private val shape : String){
         }
     }
 
-    fun getAllPositions(): List<Pair<Int, Int>> {
+    fun getAllPositions(): MutableList<Pair<Int, Int>> {
         return pos
     }
 

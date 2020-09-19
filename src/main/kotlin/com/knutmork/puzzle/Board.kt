@@ -13,14 +13,34 @@ class Board (private val numCols : Int, private val numRows : Int){
     fun putPiece(piece : Piece) {
         val (x, y) = findFirstEmptyPos()
         checkEmptyCellsForPiece(piece, x, y)
-        cellAtPos(x, y).setPiece(piece)
         // putRotateIfNecessary()
     }
 
     private fun checkEmptyCellsForPiece(piece: Piece, x: Int, y: Int) {
         val piecePositions = piece.getAllPositions()
+        val firstPosition = piecePositions.removeFirst()
+        val relPositions = relativePositions(piecePositions, x, y - firstPosition.second)
+        val allEmpty = allEmpty(relPositions)
+        if (allEmpty) {
+            cellAtPos(x, y).setPiece(piece)
+            for ((x1, y1) in relPositions.iterator()) {
+                cellAtPos(x1, y1).setPiece(piece)
+            }
+        }
+    }
 
-        // Then get relative x.y for rest of cells in piece and map them to empty cells on board
+    private fun allEmpty(boardPositions: List<Pair<Int, Int>>): Boolean {
+        for ((x, y) in boardPositions.iterator()) {
+            if (!cellAtPos(x, y).isEmpty()) {
+                println("NOT ALL EMPTY")
+                return false
+            }
+        }
+        return true
+    }
+
+    private fun relativePositions(piecePositions: MutableList<Pair<Int, Int>>, x: Int, y: Int): List<Pair<Int, Int>> {
+        return piecePositions.map { (x1, y1) -> Pair(x1 - x, y1 - y) }
     }
 
     private fun findFirstEmptyPos() : Pair<Int, Int> {
@@ -39,7 +59,11 @@ class Board (private val numCols : Int, private val numRows : Int){
     }
 
     private fun cellAtPos(x : Int, y : Int) : Cell {
-        return matrix[x][y]
+        if (x < 0 || x > numRows -1 || y < 0 || y > numCols - 1) {
+            return Cell().setPiece(Piece("")) // To prevent out-of-border, perhaps too hacky?
+        } else {
+            return matrix[x][y]
+        }
     }
 
     override fun toString() : String {
@@ -60,8 +84,9 @@ class Board (private val numCols : Int, private val numRows : Int){
             return (pieceRef == null)
         }
 
-        fun setPiece(piece : Piece) {
+        fun setPiece(piece : Piece): Cell{
             pieceRef = piece
+            return this
         }
 
         override fun toString () : String {
