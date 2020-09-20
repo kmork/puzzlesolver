@@ -11,11 +11,19 @@ class Board (private val numCols : Int, private val numRows : Int){
     }
 
     fun putPiece(piece : Piece) {
-        val (x, y) = findFirstEmptyPos()
-        checkEmptyCellsForPiece(piece, x, y)
+        var piecePut = false
+
+        var (x, y) = findFirstEmptyPos(0)
+        piecePut = putPieceIfAllEmptyCells(piece, x, y)
+        while (!piecePut) {
+            var (x1, y1) = findFirstEmptyPos(convertPosToSequence(x, y))
+            x = x1
+            y = y1
+            piecePut = putPieceIfAllEmptyCells(piece, x, y)
+        }
     }
 
-    private fun checkEmptyCellsForPiece(piece: Piece, x: Int, y: Int) {
+    private fun putPieceIfAllEmptyCells(piece: Piece, x: Int, y: Int): Boolean {
         val piecePositions = piece.getAllPositions()
         val firstPosition = piecePositions.removeFirst()
         val relPositions = relativePositions(piecePositions, x, y - firstPosition.second)
@@ -25,10 +33,9 @@ class Board (private val numCols : Int, private val numRows : Int){
             for ((x1, y1) in relPositions.iterator()) {
                 cellAtPos(x1, y1).setPiece(piece)
             }
-        } else {
-            // putRotateIfNecessary()
-            // otherwise find next empty pos and try again
         }
+        // putRotateIfNecessary()
+        return allEmpty
     }
 
     private fun allEmpty(boardPositions: List<Pair<Int, Int>>): Boolean {
@@ -44,19 +51,21 @@ class Board (private val numCols : Int, private val numRows : Int){
         return piecePositions.map { (x1, y1) -> Pair(x1 + x, y1 + y) }
     }
 
-    private fun findFirstEmptyPos() : Pair<Int, Int> {
-        return findFirstEmptyPos(0, 0)
-    }
-
-    private fun findFirstEmptyPos(startX: Int, startY: Int) : Pair<Int, Int> {
-        for (x in startX until numRows) {
-            for (y in startY until numCols) {
-                if (cellAtPos(x, y).isEmpty()) {
-                    return Pair(x, y)
+    private fun findFirstEmptyPos(seq: Int) : Pair<Int, Int> {
+        for (x in 0 until numRows) {
+            for (y in 0 until numCols) {
+                if (convertPosToSequence(x, y) > seq) {
+                    if (cellAtPos(x, y).isEmpty()) {
+                        return Pair(x, y)
+                    }
                 }
             }
         }
         return Pair(-1, -1)
+    }
+
+    private fun convertPosToSequence(x: Int, y: Int): Int {
+        return y + 1 + (x * numRows)
     }
 
     private fun cellAtPos(x : Int, y : Int) : Cell {

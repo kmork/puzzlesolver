@@ -22,7 +22,7 @@ class Piece (private val shape : String){
     }
 
     fun getAllPositions(): MutableList<Pair<Int, Int>> {
-        return pos
+        return pos.toMutableList()
     }
 
     fun rotate() {
