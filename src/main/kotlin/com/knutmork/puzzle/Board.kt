@@ -14,19 +14,38 @@ class Board (private val numCols : Int, private val numRows : Int){
         var piecePut = false
 
         var (x, y) = findFirstEmptyPos(0)
-        piecePut = putPieceIfAllEmptyCells(piece, x, y)
+        piecePut = putPieceIfAllEmptyCellsRotateIfNeeded(piece, x, y)
+
         while (!piecePut) {
+
             var (x1, y1) = findFirstEmptyPos(convertPosToSequence(x, y))
             x = x1
             y = y1
-            piecePut = putPieceIfAllEmptyCells(piece, x, y)
+            piecePut = putPieceIfAllEmptyCellsRotateIfNeeded(piece, x, y)
         }
     }
 
-    private fun putPieceIfAllEmptyCells(piece: Piece, x: Int, y: Int): Boolean {
-        val piecePositions = piece.getAllPositions()
-        val firstPosition = piecePositions.removeFirst()
-        val relPositions = relativePositions(piecePositions, x, y - firstPosition.second)
+    private fun putPieceIfAllEmptyCellsRotateIfNeeded(piece: Piece, x: Int, y: Int): Boolean {
+        var pieceWorking = piece // create a working copy that can be manipulated
+
+        if (!putPieceIfAllEmptyCells(pieceWorking, x, y, findRelativePositions(pieceWorking, x, y))) {
+            pieceWorking = pieceWorking.rotate()
+            if (!putPieceIfAllEmptyCells(pieceWorking, x, y, findRelativePositions(pieceWorking, x, y))) {
+                pieceWorking = pieceWorking.rotate()
+                if (!putPieceIfAllEmptyCells(pieceWorking, x, y, findRelativePositions(pieceWorking, x, y))) {
+                    pieceWorking = pieceWorking.rotate()
+                    return putPieceIfAllEmptyCells(pieceWorking, x, y, findRelativePositions(pieceWorking, x, y))
+                }
+            }
+        }
+        return true
+    }
+
+    private fun findRelativePositions(piece: Piece, x: Int, y: Int): List<Pair<Int, Int>> {
+        return piece.getAllPositions().map { (x1, y1) -> Pair(x1 + x, y1 + y) }
+    }
+
+    private fun putPieceIfAllEmptyCells(piece: Piece, x: Int, y: Int, relPositions: List<Pair<Int, Int>>): Boolean {
         val allEmpty = allEmpty(relPositions)
         if (allEmpty) {
             cellAtPos(x, y).setPiece(piece)
@@ -34,7 +53,6 @@ class Board (private val numCols : Int, private val numRows : Int){
                 cellAtPos(x1, y1).setPiece(piece)
             }
         }
-        // putRotateIfNecessary()
         return allEmpty
     }
 
@@ -45,10 +63,6 @@ class Board (private val numCols : Int, private val numRows : Int){
             }
         }
         return true
-    }
-
-    private fun relativePositions(piecePositions: MutableList<Pair<Int, Int>>, x: Int, y: Int): List<Pair<Int, Int>> {
-        return piecePositions.map { (x1, y1) -> Pair(x1 + x, y1 + y) }
     }
 
     private fun findFirstEmptyPos(seq: Int) : Pair<Int, Int> {
@@ -70,7 +84,7 @@ class Board (private val numCols : Int, private val numRows : Int){
 
     private fun cellAtPos(x : Int, y : Int) : Cell {
         if (x < 0 || x > numRows -1 || y < 0 || y > numCols - 1) {
-            return Cell().setPiece(Piece("")) // To prevent out-of-border, perhaps too hacky?
+            return Cell().setPiece(Piece.Builder().simple("", "")) // To prevent out-of-border, perhaps too hacky?
         } else {
             return matrix[x][y]
         }
@@ -100,7 +114,7 @@ class Board (private val numCols : Int, private val numRows : Int){
         }
 
         override fun toString () : String {
-            return if (isEmpty()) "0 " else "1 "
+            return if (isEmpty()) "  " else pieceRef?.getId() + " "
         }
     }
 }
