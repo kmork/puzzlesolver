@@ -16,10 +16,11 @@ class Puzzle () {
                 // Impossible to add piece to existing board, lets backtrack one step
                 backtrack(piece)
             }
-            //println(board)
-            print(" " + pieces.size)
+            println(board)
+            //print(" " + pieces.size)
             if (board.isComplete()) {
                 println("COMPLETE !!!")
+                println(board)
             }
         }
         println("ALL PIECES USED")

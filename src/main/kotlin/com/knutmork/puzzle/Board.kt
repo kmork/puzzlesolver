@@ -1,13 +1,12 @@
 package com.knutmork.puzzle
 
 import java.lang.StringBuilder
-import java.lang.System.exit
 import kotlin.system.exitProcess
 
 class Board (private val numCols : Int, private val numRows : Int){
 
     private var matrix: Array<Array<Cell>>
-    private val piecePos = mutableMapOf<String, PiecePosition>()
+    private val log = mutableMapOf<String, PiecePosition>()
 
     init {
         matrix = Array(numRows) {Array(numCols) { Cell() }}
@@ -23,7 +22,7 @@ class Board (private val numCols : Int, private val numRows : Int){
         while (!piecePut) {
 
             p = findFirstEmptyPos(convertPosToSequence(p))
-            if (p.x == -1 && p.y == -1) {
+            if (p.x == -1 && p.y == -1) { // No empty pos found
                 return false
             }
             piecePut = putPieceIfAllEmptyCellsRotateIfNeeded(piece, p)
@@ -32,13 +31,17 @@ class Board (private val numCols : Int, private val numRows : Int){
     }
 
     fun putPieceFromLastPlace(piece: Piece): Boolean {
-        val position = piecePos[piece.getId()];
+        val position = log[piece.getId()];
         position?.let {
             removePiece(piece)
-            return putPieceFromPosition(piece, it.pos)
+            val piecePut = putPieceFromPosition(piece, posMinus1(it.pos))
+            if (!piecePut) {
+                removeLogPiece(piece) // Remove the old log entry
+            }
+            return piecePut
         }
-        if (position == null) {
-            println("ERROR: NO POSiTION FOUND")
+        if (position == null) { // No need for this really
+            println("ERROR: NO POSITION FOUND")
             exitProcess(1)
         }
         return false
@@ -55,6 +58,14 @@ class Board (private val numCols : Int, private val numRows : Int){
         return true
     }
 
+    private fun posMinus1(pos: Pos): Pos {
+        if (pos.y > 0) {
+            return Pos(pos.x, pos.y - 1)
+        } else {
+            return Pos(pos.x - 1, numCols - 1)
+        }
+    }
+
     private fun removePiece(piece: Piece) {
         for (row in matrix.iterator()) {
             for (cell in row.iterator()) {
@@ -66,23 +77,32 @@ class Board (private val numCols : Int, private val numRows : Int){
     }
 
     private fun putPieceIfAllEmptyCellsRotateIfNeeded(piece: Piece, pos: Pos): Boolean {
-        var pieceWorking = piece // create a working copy that can be manipulated
+        var pieceWorking = piece // create a working copy for manipulation
+        var piecePut = false
 
-        piecePos[pieceWorking.getId()] = PiecePosition(pos, pieceWorking.getFlip(), pieceWorking.getRotation())
-        if ((!putPieceIfAllEmptyCells(pieceWorking, pos, findRelativePositions(pieceWorking, pos))) && pieceWorking.getRotation() < 3) {
-            pieceWorking = pieceWorking.rotate()
-            piecePos[pieceWorking.getId()] = PiecePosition(pos, pieceWorking.getFlip(), pieceWorking.getRotation())
-            if ((!putPieceIfAllEmptyCells(pieceWorking, pos, findRelativePositions(pieceWorking, pos))) && pieceWorking.getRotation() < 3) {
+        log[piece.getId()]?.let {
+            repeat(it.rotation) {
                 pieceWorking = pieceWorking.rotate()
-                piecePos[pieceWorking.getId()] = PiecePosition(pos, pieceWorking.getFlip(), pieceWorking.getRotation())
-                if ((!putPieceIfAllEmptyCells(pieceWorking, pos, findRelativePositions(pieceWorking, pos))) && pieceWorking.getRotation() < 3) {
-                    pieceWorking = pieceWorking.rotate()
-                    piecePos[pieceWorking.getId()] = PiecePosition(pos, pieceWorking.getFlip(), pieceWorking.getRotation())
-                    return putPieceIfAllEmptyCells(pieceWorking, pos, findRelativePositions(pieceWorking, pos))
-                }
             }
         }
-        return true
+
+        while (!piecePut && pieceWorking.getRotation() < 4) {
+            pieceWorking = pieceWorking.rotate()
+            piecePut = putPieceIfAllEmptyCells(pieceWorking, pos, findRelativePositions(pieceWorking, pos))
+        }
+
+        if (piecePut) {
+            logPiece(pieceWorking, pos)
+        }
+        return piecePut
+    }
+
+    private fun logPiece(piece: Piece, pos: Pos) {
+        log[piece.getId()] = PiecePosition(pos, piece.getFlip(), piece.getRotation())
+    }
+
+    private fun removeLogPiece(piece: Piece) {
+        log.remove(piece.getId())
     }
 
     private fun findRelativePositions(piece: Piece, pos: Pos): List<Pos> {
