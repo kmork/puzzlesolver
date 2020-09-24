@@ -1,92 +1,136 @@
 package com.knutmork.puzzle
 
 import java.lang.StringBuilder
+import java.lang.System.exit
+import kotlin.system.exitProcess
 
 class Board (private val numCols : Int, private val numRows : Int){
 
     private var matrix: Array<Array<Cell>>
+    private val piecePos = mutableMapOf<String, PiecePosition>()
 
     init {
         matrix = Array(numRows) {Array(numCols) { Cell() }}
     }
 
-    fun putPiece(piece : Piece) {
-        var piecePut = false
-
-        var (x, y) = findFirstEmptyPos(0)
-        piecePut = putPieceIfAllEmptyCellsRotateIfNeeded(piece, x, y)
-
-        while (!piecePut) {
-
-            var (x1, y1) = findFirstEmptyPos(convertPosToSequence(x, y))
-            x = x1
-            y = y1
-            piecePut = putPieceIfAllEmptyCellsRotateIfNeeded(piece, x, y)
-        }
+    fun putPiece(piece : Piece): Boolean {
+        return putPieceFromPosition(piece, Pos(0, -1)) // Start position
     }
 
-    private fun putPieceIfAllEmptyCellsRotateIfNeeded(piece: Piece, x: Int, y: Int): Boolean {
-        var pieceWorking = piece // create a working copy that can be manipulated
+    fun putPieceFromPosition(piece : Piece, pos: Pos): Boolean {
+        var p = pos.copy()
+        var piecePut = false
+        while (!piecePut) {
 
-        if (!putPieceIfAllEmptyCells(pieceWorking, x, y, findRelativePositions(pieceWorking, x, y))) {
-            pieceWorking = pieceWorking.rotate()
-            if (!putPieceIfAllEmptyCells(pieceWorking, x, y, findRelativePositions(pieceWorking, x, y))) {
-                pieceWorking = pieceWorking.rotate()
-                if (!putPieceIfAllEmptyCells(pieceWorking, x, y, findRelativePositions(pieceWorking, x, y))) {
-                    pieceWorking = pieceWorking.rotate()
-                    return putPieceIfAllEmptyCells(pieceWorking, x, y, findRelativePositions(pieceWorking, x, y))
+            p = findFirstEmptyPos(convertPosToSequence(p))
+            if (p.x == -1 && p.y == -1) {
+                return false
+            }
+            piecePut = putPieceIfAllEmptyCellsRotateIfNeeded(piece, p)
+        }
+        return piecePut
+    }
+
+    fun putPieceFromLastPlace(piece: Piece): Boolean {
+        val position = piecePos[piece.getId()];
+        position?.let {
+            removePiece(piece)
+            return putPieceFromPosition(piece, it.pos)
+        }
+        if (position == null) {
+            println("ERROR: NO POSiTION FOUND")
+            exitProcess(1)
+        }
+        return false
+    }
+
+    fun isComplete(): Boolean {
+        for (rows in matrix.iterator()) {
+            for (cells in rows.iterator()) {
+                if (cells.isEmpty()) {
+                    return false
                 }
             }
         }
         return true
     }
 
-    private fun findRelativePositions(piece: Piece, x: Int, y: Int): List<Pair<Int, Int>> {
-        return piece.getAllPositions().map { (x1, y1) -> Pair(x1 + x, y1 + y) }
+    private fun removePiece(piece: Piece) {
+        for (row in matrix.iterator()) {
+            for (cell in row.iterator()) {
+                if (cell.hasPiece(piece)) {
+                    cell.removePiece()
+                }
+            }
+        }
     }
 
-    private fun putPieceIfAllEmptyCells(piece: Piece, x: Int, y: Int, relPositions: List<Pair<Int, Int>>): Boolean {
+    private fun putPieceIfAllEmptyCellsRotateIfNeeded(piece: Piece, pos: Pos): Boolean {
+        var pieceWorking = piece // create a working copy that can be manipulated
+
+        piecePos[pieceWorking.getId()] = PiecePosition(pos, pieceWorking.getFlip(), pieceWorking.getRotation())
+        if ((!putPieceIfAllEmptyCells(pieceWorking, pos, findRelativePositions(pieceWorking, pos))) && pieceWorking.getRotation() < 3) {
+            pieceWorking = pieceWorking.rotate()
+            piecePos[pieceWorking.getId()] = PiecePosition(pos, pieceWorking.getFlip(), pieceWorking.getRotation())
+            if ((!putPieceIfAllEmptyCells(pieceWorking, pos, findRelativePositions(pieceWorking, pos))) && pieceWorking.getRotation() < 3) {
+                pieceWorking = pieceWorking.rotate()
+                piecePos[pieceWorking.getId()] = PiecePosition(pos, pieceWorking.getFlip(), pieceWorking.getRotation())
+                if ((!putPieceIfAllEmptyCells(pieceWorking, pos, findRelativePositions(pieceWorking, pos))) && pieceWorking.getRotation() < 3) {
+                    pieceWorking = pieceWorking.rotate()
+                    piecePos[pieceWorking.getId()] = PiecePosition(pos, pieceWorking.getFlip(), pieceWorking.getRotation())
+                    return putPieceIfAllEmptyCells(pieceWorking, pos, findRelativePositions(pieceWorking, pos))
+                }
+            }
+        }
+        return true
+    }
+
+    private fun findRelativePositions(piece: Piece, pos: Pos): List<Pos> {
+        return piece.getAllPositions().map { (x1, y1) -> Pos(x1 + pos.x, y1 + pos.y) }
+    }
+
+    private fun putPieceIfAllEmptyCells(piece: Piece, pos: Pos, relPositions: List<Pos>): Boolean {
         val allEmpty = allEmpty(relPositions)
         if (allEmpty) {
-            cellAtPos(x, y).setPiece(piece)
-            for ((x1, y1) in relPositions.iterator()) {
-                cellAtPos(x1, y1).setPiece(piece)
+            cellAtPos(pos).setPiece(piece)
+            for (p in relPositions.iterator()) {
+                cellAtPos(p).setPiece(piece)
             }
         }
         return allEmpty
     }
 
-    private fun allEmpty(boardPositions: List<Pair<Int, Int>>): Boolean {
+    private fun allEmpty(boardPositions: List<Pos>): Boolean {
         for ((x, y) in boardPositions.iterator()) {
-            if (!cellAtPos(x, y).isEmpty()) {
+            if (!cellAtPos(Pos(x, y)).isEmpty()) {
                 return false
             }
         }
         return true
     }
 
-    private fun findFirstEmptyPos(seq: Int) : Pair<Int, Int> {
+    private fun findFirstEmptyPos(seq: Int) : Pos {
         for (x in 0 until numRows) {
             for (y in 0 until numCols) {
-                if (convertPosToSequence(x, y) > seq) {
-                    if (cellAtPos(x, y).isEmpty()) {
-                        return Pair(x, y)
+                if (convertPosToSequence(Pos(x, y)) > seq) {
+                    if (cellAtPos(Pos(x, y)).isEmpty()) {
+                        return Pos(x, y)
                     }
                 }
             }
         }
-        return Pair(-1, -1)
+        return Pos(-1, -1)
     }
 
-    private fun convertPosToSequence(x: Int, y: Int): Int {
-        return y + 1 + (x * numRows)
+    private fun convertPosToSequence(p: Pos): Int {
+        return p.y + 1 + (p.x * numRows)
     }
 
-    private fun cellAtPos(x : Int, y : Int) : Cell {
-        if (x < 0 || x > numRows -1 || y < 0 || y > numCols - 1) {
+    private fun cellAtPos(pos: Pos) : Cell {
+        if (pos.x < 0 || pos.x > numRows -1 || pos.y < 0 || pos.y > numCols - 1) {
             return Cell().setPiece(Piece.Builder().simple("", "")) // To prevent out-of-border, perhaps too hacky?
         } else {
-            return matrix[x][y]
+            return matrix[pos.x][pos.y]
         }
     }
 
@@ -113,8 +157,18 @@ class Board (private val numCols : Int, private val numRows : Int){
             return this
         }
 
+        fun hasPiece(piece: Piece): Boolean {
+            return (piece.getId() == pieceRef?.getId())
+        }
+
+        fun removePiece() {
+            pieceRef = null
+        }
+
         override fun toString () : String {
             return if (isEmpty()) "  " else pieceRef?.getId() + " "
         }
     }
+
+    data class PiecePosition(val pos: Pos, val flip: Int, val rotation: Int)
 }

@@ -1,8 +1,16 @@
 package com.knutmork.puzzle
 
-class Piece (private val pos: List<Pair<Int, Int>>, private val id: String){
+class Piece (private val pos: List<Pos>, private val id: String, private val flip: Int, private val rotation: Int){
 
-    fun getAllPositions(): List<Pair<Int, Int>> {
+    fun getRotation(): Int {
+        return rotation
+    }
+
+    fun getFlip(): Int {
+        return flip
+    }
+
+    fun getAllPositions(): List<Pos> {
         return pos
     }
 
@@ -10,23 +18,24 @@ class Piece (private val pos: List<Pair<Int, Int>>, private val id: String){
         return id
     }
 
+    // TODO: Missing flipping piece (and then rotate 3 times)
     fun rotate(): Piece {
         // Rotating 90 degrees clockwise
-        val rotatedMap = pos.map { (x, y) -> Pair(y, -x) }
-        var minY = rotatedMap.minOf { (x, y) -> y }
+        val rotatedMap = pos.map { p -> Pos(p.y, -p.x) }
+        var minY = rotatedMap.minOf { p -> p.y }
         if (minY > 0) {
             minY = 0
         }
-        var minX = rotatedMap.minOf { (x, y) -> x }
+        var minX = rotatedMap.minOf { p -> p.x }
         if (minX > 0) {
             minX = 0
         }
-        return Piece(rotatedMap.map{(x, y) -> Pair(x-minX, y-minY)}, id)
+        return Piece(rotatedMap.map{ p -> Pos(p.x-minX, p.y-minY)}, id, flip, rotation+1)
     }
 
     class Builder() {
         fun simple(shape : String, id : String): Piece {
-            val pos = mutableListOf<Pair<Int, Int>>()
+            val pos = mutableListOf<Pos>()
 
             // Transform from simple string format input to a real matrix
             val rows = shape.split("\\s".toRegex())
@@ -38,11 +47,11 @@ class Piece (private val pos: List<Pair<Int, Int>>, private val id: String){
             for (x in 0 until numRows) {
                 for (y in 0 until numCols) {
                     if ('0' != rows[x][y]) {
-                        pos.add(Pair(x, y))
+                        pos.add(Pos(x, y))
                     }
                 }
             }
-            return Piece(pos, id)
+            return Piece(pos, id, 0, 0)
         }
     }
 }
