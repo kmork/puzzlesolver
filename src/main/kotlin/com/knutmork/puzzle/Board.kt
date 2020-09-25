@@ -106,23 +106,39 @@ class Board (private val numCols : Int, private val numRows : Int){
     }
 
     private fun findRelativePositions(piece: Piece, pos: Pos): List<Pos> {
-        return piece.getAllPositions().map { (x1, y1) -> Pos(x1 + pos.x, y1 + pos.y) }
+        // Find piece upper-leftmost, this is at pos
+        var sortedPiecePos = piece.getAllPositions().sortedWith(compareBy({it.x}, {it.y})).toMutableList()
+        val firstPiecePos = sortedPiecePos.removeFirst()
+        val relativePos = sortedPiecePos.map {
+                it -> Pos(pos.x + (it.x - firstPiecePos.x), pos.y + (it.y - firstPiecePos.y)) }.toMutableList()
+        relativePos.add(pos)
+        return relativePos
+
+        // 0, 3 -> 5, 5
+        // 1, 4 -> 6, 6
+        // 1, 2 -> 6, 4
+
+        // First -> pos
+        // pos.x + x1-x, pos.y + y1-y
+
+        // Then the rest is relative to that
+        //return piece.getAllPositions().map { apos -> Pos(apos.x + pos.x, apos.y + pos.y) }
     }
 
     private fun putPieceIfAllEmptyCells(piece: Piece, pos: Pos, relPositions: List<Pos>): Boolean {
-        val allEmpty = allEmpty(relPositions)
-        if (allEmpty) {
-            cellAtPos(pos).setPiece(piece)
+        if (allEmpty(relPositions)) {
+            //cellAtPos(pos).setPiece(piece)
             for (p in relPositions.iterator()) {
                 cellAtPos(p).setPiece(piece)
             }
+            return true
         }
-        return allEmpty
+        return false
     }
 
     private fun allEmpty(boardPositions: List<Pos>): Boolean {
-        for ((x, y) in boardPositions.iterator()) {
-            if (!cellAtPos(Pos(x, y)).isEmpty()) {
+        for (p in boardPositions.iterator()) {
+            if (!cellAtPos(p).isEmpty()) {
                 return false
             }
         }
