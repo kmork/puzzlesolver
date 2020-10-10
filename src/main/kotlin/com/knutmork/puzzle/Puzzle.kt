@@ -13,22 +13,19 @@ class Puzzle () {
     fun start() {
         var i = 0
         while (pieces.isNotEmpty()) {
-            i += 1
             val piece = pieces.removeLast() // Corresponds to add(last)
 
             if (board.putPiece(piece)) {
                 putStack.addFirst(piece)
             } else {
                 // Impossible to add piece to existing board, lets backtrack one step
+                println("" + i++ + " attempt")
                 backtrack(piece)
             }
-            println(board)
-            //println(pieces.size)
             if (board.isComplete()) {
                 println("COMPLETE !!!")
                 println(board)
             }
-            //if (i == 100) { break }
         }
         println("ALL PIECES USED")
         println(board)
